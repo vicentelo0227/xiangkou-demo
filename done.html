@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>訂單完成 — 巷口麵舖</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/site.css?v=202609091649">
+</head>
+<body>
+
+<main class="wrap page" id="body"></main>
+
+<script src="js/data.js?v=202609091649"></script>
+<script src="js/hours.js?v=202609091649"></script>
+<script src="js/store.js?v=202609091649"></script>
+<script src="js/ui.js?v=202609091649"></script>
+<script>
+(function(){
+UI.mount({ noBar: true });
+
+var o = Order.last();
+var b = document.getElementById('body');
+var MODE = { dinein:'內用', pickup:'外帶自取', delivery:'外送' };
+var PAY = { cash:'現金', line:'LINE Pay', card:'刷卡' };
+
+if (!o){
+  b.innerHTML = '<div class="empty"><p>這裡還沒有訂單。</p><a class="btn" href="index.html">回去看菜單</a></div>';
+} else {
+  b.innerHTML =
+    '<div class="card" style="text-align:center">' +
+      '<div style="font-size:.9rem;color:var(--muted)">你的號碼</div>' +
+      '<div class="no">' + esc(o.no) + '</div>' +
+      '<div style="font-weight:700;margin-top:.4rem">' + MODE[o.mode] + '　' + esc(Hours.label(o.slot)) + '</div>' +
+      '<div style="font-size:.87rem;color:var(--muted);margin-top:.5rem;line-height:1.8">' +
+        (o.mode === 'delivery'
+          ? '做好會直接送過去，外送員到樓下會打給你。'
+          : '做好會叫號，' + (o.mode === 'dinein' ? '請到櫃檯前等一下。' : '直接到櫃檯報號碼就可以。')) +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card"><h2>點了什麼</h2>' +
+      o.items.map(function(it){
+        return '<div class="row"><div><div class="nm">' + esc(it.name) + ' ×' + it.qty + '</div>' +
+          (it.opts ? '<div class="op">' + esc(it.opts) + '</div>' : '') +
+          (it.note ? '<div class="nt">備註：' + esc(it.note) + '</div>' : '') +
+        '</div><div class="pr">' + money(it.price * it.qty) + '</div></div>';
+      }).join('') +
+      '<div class="tot">' +
+        (o.totals.fee ? '<div><span>外送費</span><span class="num">' + money(o.totals.fee) + '</span></div>' : '') +
+        '<div class="t"><span>合計</span><span class="num">' + money(o.totals.total) + '</span></div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card"><h2>訂單資料</h2>' +
+      '<div class="tot">' +
+        '<div><span>稱呼</span><span>' + esc(o.form.name) + '</span></div>' +
+        '<div><span>電話</span><span class="num">' + esc(o.form.tel) + '</span></div>' +
+        (o.mode === 'delivery' ? '<div><span>地址</span><span>' + esc(o.form.addr) + '</span></div>' : '') +
+        '<div><span>付款</span><span>' + (PAY[o.form.pay] || '') + '</span></div>' +
+        (o.form.memo ? '<div><span>備註</span><span>' + esc(o.form.memo) + '</span></div>' : '') +
+      '</div>' +
+      '<p class="notice" style="margin-top:.9rem">這是示範網站。沒有真的訂單、沒有扣款，' +
+      '上面這些只存在你自己的瀏覽器裡，沒有送到任何伺服器。</p>' +
+      '<button class="btn btn-o" id="again" style="width:100%;margin-top:.9rem">清掉紀錄，再點一次</button>' +
+    '</div>';
+
+  document.getElementById('again').onclick = function(){
+    Order.reset();
+    location.href = 'index.html';
+  };
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>巷口麵舖 — 線上點餐</title>
+<meta name="description" content="示範用的線上點餐系統。選餐點、加料、選取餐時間，整套流程都能實際操作。">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/site.css?v=202609091649">
+</head>
+<body>
+
+<nav class="cats" id="cats" aria-label="餐點分類"><div class="wrap cats-in" id="catsIn"></div></nav>
+
+<main class="wrap page" style="padding-bottom:7rem">
+  <section class="hero">
+    <h1>今天想吃什麼</h1>
+    <p class="meta" id="meta"></p>
+    <div id="notice"></div>
+  </section>
+  <div id="menu"></div>
+</main>
+
+<script src="js/data.js?v=202609091649"></script>
+<script src="js/hours.js?v=202609091649"></script>
+<script src="js/store.js?v=202609091649"></script>
+<script src="js/ui.js?v=202609091649"></script>
+<script>
+(function(){
+UI.mount();
+
+var st = Hours.status();
+var slots = Hours.slots();
+// 沒開也能點，只是變成預約下一個時段 —— 真實點餐 app 都是這樣，
+// 也才不會讓客戶在非營業時間打開時什麼都試不了。
+var shut = slots.length === 0;
+
+document.getElementById('meta').innerHTML =
+  esc(Hours.hoursText()) + '<br>' + esc(SHOP.addr);
+
+document.getElementById('notice').innerHTML = shut
+  ? '<div class="notice shut"><b>' + esc(st.text) + '</b>　' + esc(st.sub) + '</div>'
+  : st.open
+    ? '<div class="notice">' + esc(st.sub) + '　·　點餐後約 ' + SHOP.prepMinutes + ' 分鐘可取餐</div>'
+    : '<div class="notice"><b>' + esc(st.text) + '</b>　' + esc(st.sub) +
+      '<br>現在可以先點，最快的取餐時間是 ' + esc(slots[0].sub) + esc(slots[0].label) + '。</div>';
+
+// 分類列
+document.getElementById('catsIn').innerHTML = SHOP.cats.map(function(c,i){
+  return '<a href="#c-'+c.id+'"'+(i===0?' aria-current="true"':'')+'>'+esc(c.name)+'</a>';
+}).join('');
+
+// 菜單
+document.getElementById('menu').innerHTML = SHOP.cats.map(function(c){
+  var list = SHOP.items.filter(function(m){ return m.cat === c.id; });
+  if (!list.length) return '';
+  return '<section class="sec" id="c-'+c.id+'"><h2>'+esc(c.name)+'</h2>' +
+    '<div class="list">' + list.map(function(m){ return UI.dishHTML(m, shut); }).join('') + '</div></section>';
+}).join('');
+
+document.querySelectorAll('[data-dish]').forEach(function(b){
+  b.onclick = function(){
+    if (shut) { UI.toast('最近幾天都沒有營業時段'); return; }
+    UI.openSheet(b.dataset.dish, b);
+  };
+});
+
+// 捲到哪一區，分類列就標哪一個。直接比捲動位置，不用 IntersectionObserver ——
+// 各區塊高度差很多，比較「可見比例」會選錯，而且沒有區塊落在判定帶時會留著舊的高亮。
+var secs = [].slice.call(document.querySelectorAll('.sec'));
+var tabs = [].slice.call(document.querySelectorAll('.cats a'));
+var OFFSET = 150;                      // 頁首 + 分類列的高度，多留一點緩衝
+
+function spy(){
+  if (!secs.length) return;
+  var y = window.scrollY + OFFSET;
+  var cur = secs[0].id;
+  secs.forEach(function(s){ if (s.offsetTop <= y) cur = s.id; });
+  // 捲到底時直接標最後一區，免得最後一區太短永遠選不到
+  if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) {
+    cur = secs[secs.length - 1].id;
+  }
+  tabs.forEach(function(t){
+    if (t.getAttribute('href') === '#' + cur) t.setAttribute('aria-current','true');
+    else t.removeAttribute('aria-current');
+  });
+}
+
+var tick = false;
+window.addEventListener('scroll', function(){
+  if (tick) return;
+  tick = true;
+  requestAnimationFrame(function(){ tick = false; spy(); });
+}, { passive: true });
+window.addEventListener('resize', spy, { passive: true });
+spy();
+})();
+</script>
+</body>
+</html>

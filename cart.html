@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你的訂單 — 巷口麵舖</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/site.css?v=202609091649">
+</head>
+<body>
+
+<main class="wrap page" id="body"></main>
+
+<script src="js/data.js?v=202609091649"></script>
+<script src="js/hours.js?v=202609091649"></script>
+<script src="js/store.js?v=202609091649"></script>
+<script src="js/ui.js?v=202609091649"></script>
+<script>
+(function(){
+UI.mount({ noBar: true });
+
+function render(){
+  var items = Order.items(), t = Order.totals(), b = document.getElementById('body');
+
+  if (!items.length){
+    b.innerHTML = '<div class="empty"><p>還沒點東西。</p><a class="btn" href="index.html">回去看菜單</a></div>';
+    return;
+  }
+
+  b.innerHTML =
+    '<h1>你的訂單</h1>' +
+    '<div class="card">' +
+      items.map(function(it,i){
+        var m = SHOP.find(it.id), op = Order.describe(it);
+        return '<div class="row">' +
+          '<div><div class="nm">' + esc(m.name) + '</div>' +
+            (op ? '<div class="op">' + esc(op) + '</div>' : '') +
+            (it.note ? '<div class="nt">備註：' + esc(it.note) + '</div>' : '') +
+            '<div class="tools">' +
+              '<span class="qty"><button data-dec="' + i + '" aria-label="減少 ' + esc(m.name) + '">−</button>' +
+              '<span>' + it.qty + '</span>' +
+              '<button data-inc="' + i + '" aria-label="增加 ' + esc(m.name) + '">＋</button></span>' +
+              '<button class="rm" data-rm="' + i + '">移除</button>' +
+            '</div></div>' +
+          '<div class="pr">' + money(Order.unitPrice(it) * it.qty) + '</div></div>';
+      }).join('') +
+    '</div>' +
+
+    '<div class="card"><h2>怎麼拿</h2>' +
+      '<div class="pick">' +
+        [['dinein','內用','店裡候位'],
+         ['pickup','外帶自取','到店取餐'],
+         ['delivery','外送','低消 ' + money(SHOP.delivery.min)]].map(function(o){
+          return '<button data-mode="' + o[0] + '" aria-pressed="' + (Order.mode()===o[0]) + '">' +
+            o[1] + '<span class="s">' + o[2] + '</span></button>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="tot">' +
+        '<div><span>小計</span><span class="num">' + money(t.subtotal) + '</span></div>' +
+        (Order.mode()==='delivery'
+          ? '<div><span>外送費</span><span class="num">' + (t.fee ? money(t.fee) : '免外送費') + '</span></div>'
+          : '') +
+        '<div class="t"><span>合計</span><span class="num">' + money(t.total) + '</span></div>' +
+      '</div>' +
+      (t.shortOf > 0
+        ? '<p class="warn">外送低消 ' + money(SHOP.delivery.min) + '，還差 ' + money(t.shortOf) + '</p>'
+        : (Order.mode()==='delivery' && t.toFreeFee > 0
+            ? '<p class="warn" style="color:var(--amber)">再 ' + money(t.toFreeFee) + ' 免外送費</p>' : '')) +
+      '<a class="btn" id="go" href="checkout.html" style="width:100%;margin-top:1rem">選取餐時間</a>' +
+      '<a class="btn btn-o" href="index.html" style="width:100%;margin-top:.6rem">再加點別的</a>' +
+    '</div>';
+
+  var go = document.getElementById('go');
+  if (t.shortOf > 0){
+    go.setAttribute('aria-disabled','true');
+    go.style.background = 'var(--line-2)';
+    go.onclick = function(e){ e.preventDefault(); UI.toast('外送還差 ' + money(t.shortOf) + ' 才到低消'); };
+  }
+
+  var q = function(sel, fn){ document.querySelectorAll(sel).forEach(fn); };
+  q('[data-dec]', function(x){ x.onclick = function(){ var i=+x.dataset.dec, it=Order.items()[i]; if(!it) return; Order.setQty(i, it.qty-1); render(); }; });
+  q('[data-inc]', function(x){ x.onclick = function(){ var i=+x.dataset.inc, it=Order.items()[i]; if(!it) return;
+    if (it.qty>=20){ UI.toast('一次最多 20 份'); return; }
+    Order.setQty(i, it.qty+1); render(); }; });
+  q('[data-rm]',  function(x){ x.onclick = function(){ Order.remove(+x.dataset.rm); render(); }; });
+  q('[data-mode]',function(x){ x.onclick = function(){ Order.mode(x.dataset.mode); render(); }; });
+}
+
+window.addEventListener('xk:sync', render);
+render();
+})();
+</script>
+</body>
+</html>

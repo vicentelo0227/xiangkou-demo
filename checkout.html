@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>送出訂單 — 巷口麵舖</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/site.css?v=202609091649">
+</head>
+<body>
+
+<main class="wrap page" id="body"></main>
+
+<script src="js/data.js?v=202609091649"></script>
+<script src="js/hours.js?v=202609091649"></script>
+<script src="js/store.js?v=202609091649"></script>
+<script src="js/ui.js?v=202609091649"></script>
+<script>
+(function(){
+UI.mount({ noBar: true });
+
+var form = { name:'', tel:'', addr:'', memo:'', pay:'cash' };
+var errs = {};
+var MODE = { dinein:'內用', pickup:'外帶自取', delivery:'外送' };
+
+function field(k, label, ph, ta){
+  var bad = errs[k] ? ' bad' : '';
+  var aria = errs[k] ? ' aria-invalid="true" aria-describedby="e_'+k+'"' : '';
+  var v = esc(form[k] || '');
+  return '<div class="f'+bad+'"><label for="f_'+k+'">'+label+'</label>' +
+    (ta ? '<textarea id="f_'+k+'" maxlength="80" placeholder="'+ph+'"'+aria+'>'+v+'</textarea>'
+        : '<input id="f_'+k+'" type="text" value="'+v+'" placeholder="'+ph+'"'+aria+'>') +
+    (errs[k] ? '<div class="er" id="e_'+k+'" role="alert">'+esc(errs[k])+'</div>' : '') + '</div>';
+}
+
+function render(){
+  var items = Order.items(), t = Order.totals(), b = document.getElementById('body');
+  if (!items.length){
+    b.innerHTML = '<div class="empty"><p>訂單是空的，沒有東西可以送出。</p><a class="btn" href="index.html">回去看菜單</a></div>';
+    return;
+  }
+
+  var slots = Hours.slots();
+  var mode = Order.mode();
+
+  b.innerHTML =
+    '<h1>送出訂單</h1>' +
+
+    '<div class="card"><h2>什麼時候要</h2>' +
+      (slots.length
+        ? '<div class="slots">' + slots.map(function(s){
+            return '<button data-slot="' + esc(s.v) + '" aria-pressed="' + (Order.slot()===s.v) + '">' +
+              esc(s.label) + '<span class="s">' + esc(s.sub) + '</span></button>';
+          }).join('') + '</div>' +
+          (errs.slot ? '<div class="er" role="alert" style="margin-top:.6rem">'+esc(errs.slot)+'</div>' : '')
+        : '<p class="warn">現在沒有可以選的時段，' + esc(Hours.nextOpenText()) + '</p>') +
+    '</div>' +
+
+    '<div class="card"><h2>' + MODE[mode] + '　聯絡方式</h2>' +
+      field('name','怎麼稱呼你','王先生') +
+      field('tel','手機','0912345678') +
+      (mode==='delivery' ? field('addr','外送地址','和平東路二段 32 巷 5 號 3 樓') : '') +
+      field('memo','整筆訂單的備註（選填）','例如：麻煩多附一副餐具', true) +
+    '</div>' +
+
+    '<div class="card"><h2>怎麼付</h2>' +
+      '<div class="pick">' +
+        [['cash', mode==='delivery' ? '送達付現' : '取餐時付現', '現金'],
+         ['line','LINE Pay','到店掃碼'],
+         ['card','刷卡','到店刷']].map(function(o){
+          return '<button data-pay="'+o[0]+'" aria-pressed="'+(form.pay===o[0])+'">'+o[1]+'<span class="s">'+o[2]+'</span></button>';
+        }).join('') +
+      '</div>' +
+      '<p class="notice" style="margin-top:.9rem">這是示範網站，不會向你收取任何費用，也不會傳送付款資訊。' +
+      '真實案子這裡會接金流商的安全欄位或到店付款。</p>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<div class="tot">' +
+        items.map(function(it){
+          var m = SHOP.find(it.id);
+          return '<div><span>' + esc(m.name) + ' ×' + it.qty + '</span><span class="num">' + money(Order.unitPrice(it)*it.qty) + '</span></div>';
+        }).join('') +
+        (t.fee ? '<div><span>外送費</span><span class="num">' + money(t.fee) + '</span></div>' : '') +
+        '<div class="t"><span>合計</span><span class="num">' + money(t.total) + '</span></div>' +
+      '</div>' +
+      '<button class="btn" id="send" style="width:100%;margin-top:1rem">送出訂單</button>' +
+      '<a class="btn btn-o" href="cart.html" style="width:100%;margin-top:.6rem">回去改訂單</a>' +
+    '</div>';
+
+  bind();
+}
+
+function grab(){
+  ['name','tel','addr','memo'].forEach(function(k){
+    var e = document.getElementById('f_'+k); if (e) form[k] = e.value.trim();
+  });
+}
+
+function validate(){
+  errs = {};
+  if (!Order.slot()) errs.slot = '請先選一個取餐時間';
+  if (!form.name) errs.name = '留個稱呼，好叫號';
+  var tel = form.tel.replace(/\D/g,'');
+  if (!/^09\d{8}$/.test(tel)) errs.tel = '手機請填 09 開頭的十碼'; else form.tel = tel;
+  if (Order.mode()==='delivery' && (!form.addr || form.addr.length < 5)) errs.addr = '外送地址寫詳細一點';
+  return !Object.keys(errs).length;
+}
+
+function bind(){
+  document.querySelectorAll('[data-slot]').forEach(function(b){
+    b.onclick = function(){
+      grab(); Order.slot(b.dataset.slot);
+      document.querySelectorAll('[data-slot]').forEach(function(x){
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+      var e = document.querySelector('.slots + .er'); if (e) e.remove();
+    };
+  });
+  document.querySelectorAll('[data-pay]').forEach(function(b){
+    b.onclick = function(){
+      grab(); form.pay = b.dataset.pay;
+      document.querySelectorAll('[data-pay]').forEach(function(x){
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+    };
+  });
+  document.getElementById('send').onclick = function(){
+    grab();
+    if (!validate()){ render(); var bad = document.querySelector('.f.bad input, .f.bad textarea');
+      if (bad) bad.focus(); else window.scrollTo({top:0}); UI.toast('還有欄位要填'); return; }
+    Order.place(form);
+    location.href = 'done.html';
+  };
+}
+
+window.addEventListener('xk:sync', render);
+render();
+})();
+</script>
+</body>
+</html>
