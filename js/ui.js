@@ -178,6 +178,7 @@
       UI._qty = q;
       document.getElementById('qv').textContent = q;
       document.getElementById('qd').disabled = (q <= 1);
+      document.getElementById('qi').disabled = (q >= 20);
       UI._refresh();
     },
 

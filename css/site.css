@@ -160,7 +160,7 @@ input,select,textarea{font:inherit;color:inherit}
 .row:last-child{border-bottom:0}
 .row .nm{font-weight:700;font-size:.98rem}
 .row .op{font-size:.82rem;color:var(--muted);margin-top:.15rem;line-height:1.7}
-.row .nt{font-size:.82rem;color:var(--amber);margin-top:.15rem}
+.row .nt{font-size:.82rem;color:var(--amber);margin-top:.15rem;white-space:pre-wrap}
 .row .pr{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
 .row .tools{display:flex;align-items:center;gap:.5rem;margin-top:.5rem}
 .row .tools .qty button{width:36px;height:40px;font-size:1rem}

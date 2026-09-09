@@ -6,22 +6,39 @@
 <title>送出訂單 — 巷口麵舖</title>
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/site.css?v=202609092200">
+<link rel="stylesheet" href="css/site.css?v=202609092209">
 </head>
 <body>
 
 <main class="wrap page" id="body"></main>
 
-<script src="js/data.js?v=202609092200"></script>
-<script src="js/hours.js?v=202609092200"></script>
-<script src="js/store.js?v=202609092200"></script>
-<script src="js/ui.js?v=202609092200"></script>
+<script src="js/data.js?v=202609092209"></script>
+<script src="js/hours.js?v=202609092209"></script>
+<script src="js/store.js?v=202609092209"></script>
+<script src="js/ui.js?v=202609092209"></script>
 <script>
 (function(){
 UI.mount({ noBar: true });
 
+var FKEY = 'xiangkou-form-v1';
 var form = { name:'', tel:'', addr:'', memo:'', pay:'cash' };
 var errs = {};
+
+// 取餐時段存在 localStorage、重整後還在，聯絡資料就不該憑空消失。
+// 用 sessionStorage：分頁關掉即消失，個資不會長期留在裝置上。
+try {
+  var saved = JSON.parse(sessionStorage.getItem(FKEY) || 'null');
+  if (saved && typeof saved === 'object') {
+    ['name','tel','addr','memo'].forEach(function(k){
+      if (typeof saved[k] === 'string') form[k] = saved[k];
+    });
+    if (['cash','line','card'].indexOf(saved.pay) >= 0) form.pay = saved.pay;
+  }
+} catch (e) { /* 讀不到就用空表單 */ }
+
+function saveForm(){
+  try { sessionStorage.setItem(FKEY, JSON.stringify(form)); } catch (e) {}
+}
 var MODE = { dinein:'內用', pickup:'外帶自取', delivery:'外送' };
 
 function field(k, label, ph, ta){
@@ -96,6 +113,7 @@ function grab(){
   ['name','tel','addr','memo'].forEach(function(k){
     var e = document.getElementById('f_'+k); if (e) form[k] = e.value.trim();
   });
+  saveForm();
 }
 
 function validate(){
@@ -120,7 +138,7 @@ function bind(){
   });
   document.querySelectorAll('[data-pay]').forEach(function(b){
     b.onclick = function(){
-      grab(); form.pay = b.dataset.pay;
+      grab(); form.pay = b.dataset.pay; saveForm();
       document.querySelectorAll('[data-pay]').forEach(function(x){
         x.setAttribute('aria-pressed', String(x === b));
       });
@@ -131,6 +149,7 @@ function bind(){
     if (!validate()){ render(); var bad = document.querySelector('.f.bad input, .f.bad textarea');
       if (bad) bad.focus(); else window.scrollTo({top:0}); UI.toast('還有欄位要填'); return; }
     Order.place(form);
+    try { sessionStorage.removeItem(FKEY); } catch (e) {}   // 送出後不留在下一張單
     location.href = 'done.html';
   };
 }
