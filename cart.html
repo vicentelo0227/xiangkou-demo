@@ -6,16 +6,16 @@
 <title>你的訂單 — 巷口麵舖</title>
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/site.css?v=202609092212">
+<link rel="stylesheet" href="css/site.css?v=202609092252">
 </head>
 <body>
 
 <main class="wrap page" id="body"></main>
 
-<script src="js/data.js?v=202609092212"></script>
-<script src="js/hours.js?v=202609092212"></script>
-<script src="js/store.js?v=202609092212"></script>
-<script src="js/ui.js?v=202609092212"></script>
+<script src="js/data.js?v=202609092252"></script>
+<script src="js/hours.js?v=202609092252"></script>
+<script src="js/store.js?v=202609092252"></script>
+<script src="js/ui.js?v=202609092252"></script>
 <script>
 (function(){
 UI.mount({ noBar: true });
@@ -49,9 +49,9 @@ function render(){
 
     '<div class="card"><h2>怎麼拿</h2>' +
       '<div class="pick">' +
-        [['dinein','內用','店裡候位'],
-         ['pickup','外帶自取','到店取餐'],
-         ['delivery','外送','低消 ' + money(SHOP.delivery.min)]].map(function(o){
+        [['dinein', UI.MODE.dinein.name, '店裡候位'],
+         ['pickup', UI.MODE.pickup.name, '到店取餐'],
+         ['delivery', UI.MODE.delivery.name, '低消 ' + money(SHOP.delivery.min)]].map(function(o){
           return '<button data-mode="' + o[0] + '" aria-pressed="' + (Order.mode()===o[0]) + '">' +
             o[1] + '<span class="s">' + o[2] + '</span></button>';
         }).join('') +
@@ -70,7 +70,7 @@ function render(){
         ? '<p class="warn">外送低消 ' + money(SHOP.delivery.min) + '，還差 ' + money(t.shortOf) + '</p>'
         : (Order.mode()==='delivery' && t.toFreeFee > 0
             ? '<p class="warn" style="color:var(--amber)">再 ' + money(t.toFreeFee) + ' 免外送費</p>' : '')) +
-      '<a class="btn" id="go" href="checkout.html" style="width:100%;margin-top:1rem">選取餐時間</a>' +
+      '<a class="btn" id="go" href="checkout.html" style="width:100%;margin-top:1rem">' + UI.MODE[Order.mode()].btn + '</a>' +
       '<a class="btn btn-o" href="index.html" style="width:100%;margin-top:.6rem">再加點別的</a>' +
     '</div>';
 

@@ -7,6 +7,16 @@
   }
 
   var UI = {
+    // 到店吃、來拿、送到府是三件事，時間的說法不能共用一句
+    MODE: {
+      dinein:   { name: '內用',     btn: '選用餐時間', head: '幾點到店用餐', err: '請先選一個用餐時間' },
+      pickup:   { name: '外帶自取', btn: '選取餐時間', head: '幾點來取餐',   err: '請先選一個取餐時間' },
+      delivery: { name: '外送',     btn: '選送達時間', head: '幾點送到',     err: '請先選一個送達時間' }
+    },
+
+    // 外送顯示送達時間（出餐再加路程），其餘顯示出餐時間
+    modeOffset: function (mode) { return mode === 'delivery' ? (SHOP.delivery.minutes || 0) : 0; },
+
     mount: function (opts) {
       opts = opts || {};
       var st = Hours.status();

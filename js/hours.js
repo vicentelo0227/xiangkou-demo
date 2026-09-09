@@ -90,17 +90,20 @@
       return out;
     },
 
-    // 'next:' 的實際日子要重算，隔天公休時下一個營業日可能是後天
-    label: function (v, d) {
+    plus: function (hhmm, add) { return fmt(mins(hhmm) + (add || 0)); },
+
+    // 'next:' 的實際日子要重算，隔天公休時下一個營業日可能是後天。offset 給外送加路程
+    label: function (v, d, offset) {
       if (!v) return '';
-      if (v === 'asap') return '盡快（約 ' + SHOP.prepMinutes + ' 分鐘後）';
+      offset = offset || 0;
+      if (v === 'asap') return '盡快（約 ' + (SHOP.prepMinutes + offset) + ' 分鐘後）';
       var p = v.split(':');
       var when = '今天';
       if (p[0] !== 'today') {
         var nx = nextOpenDay(d || new Date());
         when = nx ? nx.label : '下次營業日';
       }
-      return when + ' ' + p.slice(1).join(':');
+      return when + ' ' + fmt(mins(p.slice(1).join(':')) + offset);
     },
 
     hoursText: function () {

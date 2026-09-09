@@ -6,16 +6,16 @@
 <title>送出訂單 — 巷口麵舖</title>
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/site.css?v=202609092212">
+<link rel="stylesheet" href="css/site.css?v=202609092252">
 </head>
 <body>
 
 <main class="wrap page" id="body"></main>
 
-<script src="js/data.js?v=202609092212"></script>
-<script src="js/hours.js?v=202609092212"></script>
-<script src="js/store.js?v=202609092212"></script>
-<script src="js/ui.js?v=202609092212"></script>
+<script src="js/data.js?v=202609092252"></script>
+<script src="js/hours.js?v=202609092252"></script>
+<script src="js/store.js?v=202609092252"></script>
+<script src="js/ui.js?v=202609092252"></script>
 <script>
 (function(){
 UI.mount({ noBar: true });
@@ -39,7 +39,6 @@ try {
 function saveForm(){
   try { sessionStorage.setItem(FKEY, JSON.stringify(form)); } catch (e) {}
 }
-var MODE = { dinein:'內用', pickup:'外帶自取', delivery:'外送' };
 
 function field(k, label, ph, ta){
   var bad = errs[k] ? ' bad' : '';
@@ -60,21 +59,25 @@ function render(){
 
   var slots = Hours.slots();
   var mode = Order.mode();
+  var off = UI.modeOffset(mode);
 
   b.innerHTML =
     '<h1>送出訂單</h1>' +
 
-    '<div class="card"><h2>什麼時候要</h2>' +
+    '<div class="card"><h2>' + UI.MODE[mode].head + '</h2>' +
       (slots.length
         ? '<div class="slots">' + slots.map(function(s){
+            var lab = s.v === 'asap' ? s.label : Hours.plus(s.label, off);
+            var sub = s.v === 'asap' ? ('約 ' + (SHOP.prepMinutes + off) + ' 分鐘後') : s.sub;
             return '<button data-slot="' + esc(s.v) + '" aria-pressed="' + (Order.slot()===s.v) + '">' +
-              esc(s.label) + '<span class="s">' + esc(s.sub) + '</span></button>';
+              esc(lab) + '<span class="s">' + esc(sub) + '</span></button>';
           }).join('') + '</div>' +
+          (off ? '<p class="notice" style="margin-top:.7rem">已含外送路程約 ' + SHOP.delivery.minutes + ' 分鐘，實際到達時間會受路況影響。</p>' : '') +
           (errs.slot ? '<div class="er" role="alert" style="margin-top:.6rem">'+esc(errs.slot)+'</div>' : '')
         : '<p class="warn">現在沒有可以選的時段，' + esc(Hours.nextOpenText()) + '</p>') +
     '</div>' +
 
-    '<div class="card"><h2>' + MODE[mode] + '　聯絡方式</h2>' +
+    '<div class="card"><h2>' + UI.MODE[mode].name + '　聯絡方式</h2>' +
       field('name','怎麼稱呼你','王先生') +
       field('tel','手機','0912345678') +
       (mode==='delivery' ? field('addr','外送地址','和平東路二段 32 巷 5 號 3 樓') : '') +
@@ -118,7 +121,7 @@ function grab(){
 
 function validate(){
   errs = {};
-  if (!Order.slot()) errs.slot = '請先選一個取餐時間';
+  if (!Order.slot()) errs.slot = UI.MODE[Order.mode()].err;
   if (!form.name) errs.name = '留個稱呼，好叫號';
   var tel = form.tel.replace(/\D/g,'');
   if (!/^09\d{8}$/.test(tel)) errs.tel = '手機請填 09 開頭的十碼'; else form.tel = tel;

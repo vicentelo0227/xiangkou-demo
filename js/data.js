@@ -6,7 +6,7 @@ window.SHOP = {
   // 週一公休，其餘 11:00–14:00 與 17:00–20:30
   hours: { closedDays: [1], slots: [['11:00', '14:00'], ['17:00', '20:30']] },
   prepMinutes: 20,          // 最快幾分鐘後可取餐
-  delivery: { fee: 60, min: 300, freeOver: 500 },
+  delivery: { fee: 60, min: 300, freeOver: 500, minutes: 20 },   // minutes = 路程，外送時段顯示的是送達時間
 
   cats: [
     { id: 'noodle', name: '麵食' },
