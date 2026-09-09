@@ -70,8 +70,11 @@
     var m = SHOP.find(it.id);
     if (!m) return '';
     var out = [];
+    // 只列出菜單上真的存在的選項，否則畫面會顯示一個沒被計價的品項
     m.groups.forEach(function (g) {
-      (it.picks[g.id] || []).forEach(function (v) { out.push(v); });
+      (it.picks[g.id] || []).forEach(function (v) {
+        if (g.options.some(function (o) { return o.v === v; })) out.push(v);
+      });
     });
     return out.join('・');
   }
