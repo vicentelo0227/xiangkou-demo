@@ -2,7 +2,7 @@
 (function () {
   var DAY = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
   var STEP = 10;            // 取餐時段間隔（分）
-  var LAST_ORDER = 15;      // 打烊前幾分鐘停止接單
+  var LAST_ORDER = 15;      // 指定時段最晚可選到打烊前幾分鐘
 
   function mins(hhmm) { var p = hhmm.split(':'); return (+p[0]) * 60 + (+p[1]); }
   function fmt(m) {
@@ -15,6 +15,16 @@
     return SHOP.hours.slots.map(function (s) { return [mins(s[0]), mins(s[1])]; });
   }
   function nowMins(d) { return d.getHours() * 60 + d.getMinutes(); }
+
+  // 今天之後第一個有營業的日子，slots() 與 label() 共用同一套判斷才不會標成不同天
+  function nextOpenDay(d) {
+    var t = new Date(d.getTime());
+    for (var i = 1; i <= 7; i++) {
+      t.setDate(t.getDate() + 1);
+      if (windows(t).length) return { label: i === 1 ? '明天' : DAY[t.getDay()], date: t, open: windows(t)[0] };
+    }
+    return null;
+  }
 
   var Hours = {
     isOpen: function (d) {
@@ -31,12 +41,13 @@
       for (var i = 0; i < ws.length; i++) {
         var w = ws[i];
         if (n >= w[0] && n < w[1]) {
-          var left = w[1] - n;
+          // 剩餘時間不夠備餐就等於停止接單，否則會答應一個做不完的單
+          var left = w[1] - n, taking = left >= SHOP.prepMinutes;
           return {
-            open: left > LAST_ORDER,
-            text: left > LAST_ORDER ? '現在營業中' : '準備打烊了',
-            sub: left > LAST_ORDER ? (fmt(w[1]) + ' 休息' + (left <= 45 ? '，剩 ' + left + ' 分鐘' : ''))
-                                   : ('' + fmt(w[1]) + ' 休息，已停止接單')
+            open: taking,
+            text: taking ? '現在營業中' : '準備打烊了',
+            sub: taking ? (fmt(w[1]) + ' 休息' + (left <= 45 ? '，剩 ' + left + ' 分鐘' : ''))
+                        : ('' + fmt(w[1]) + ' 休息，已停止接單')
           };
         }
         if (n < w[0]) return { open: false, text: '還沒開', sub: fmt(w[0]) + ' 開始營業' };
@@ -45,16 +56,8 @@
     },
 
     nextOpenText: function (d) {
-      var t = new Date(d.getTime());
-      for (var i = 1; i <= 7; i++) {
-        t.setDate(t.getDate() + 1);
-        var ws = windows(t);
-        if (ws.length) {
-          var label = (i === 1) ? '明天' : DAY[t.getDay()];
-          return label + ' ' + fmt(ws[0][0]) + ' 再開';
-        }
-      }
-      return '';
+      var nx = nextOpenDay(d || new Date());
+      return nx ? nx.label + ' ' + fmt(nx.open[0]) + ' 再開' : '請洽門市';
     },
 
     // 可以選的取餐時間。營業中會多一個「盡快」。
@@ -65,7 +68,9 @@
       var earliest = Math.ceil((n + SHOP.prepMinutes) / STEP) * STEP;
       var ws = windows(d);
 
-      if (Hours.isOpen(d) && Hours.status(d).open) {
+      // 備餐時間必須塞得進目前這個營業時段，否則「盡快」會算出打烊後的取餐時間
+      var fits = ws.some(function (w) { return n >= w[0] && n < w[1] && n + SHOP.prepMinutes <= w[1]; });
+      if (fits && Hours.status(d).open) {
         out.push({ v: 'asap', label: '盡快', sub: '約 ' + SHOP.prepMinutes + ' 分鐘後' });
       }
       ws.forEach(function (w) {
@@ -74,27 +79,27 @@
         }
       });
 
-      if (out.length < 2) {                       // 今天沒得選了，給隔天的前幾個時段
-        var t = new Date(d.getTime());
-        for (var i = 1; i <= 7; i++) {
-          t.setDate(t.getDate() + 1);
-          var nw = windows(t);
-          if (!nw.length) continue;
-          var label = (i === 1) ? '明天' : DAY[t.getDay()];
-          for (var mm = nw[0][0]; mm <= Math.min(nw[0][0] + 50, nw[0][1] - LAST_ORDER); mm += STEP) {
-            out.push({ v: 'next:' + fmt(mm), label: fmt(mm), sub: label });
+      if (out.length < 2) {                       // 今天沒得選了，給下一個營業日的前幾個時段
+        var nx = nextOpenDay(d);
+        if (nx) {
+          for (var mm = nx.open[0]; mm <= Math.min(nx.open[0] + 50, nx.open[1] - LAST_ORDER); mm += STEP) {
+            out.push({ v: 'next:' + fmt(mm), label: fmt(mm), sub: nx.label });
           }
-          break;
         }
       }
       return out;
     },
 
-    label: function (v) {
+    // 'next:' 的實際日子要重算，隔天公休時下一個營業日可能是後天
+    label: function (v, d) {
       if (!v) return '';
       if (v === 'asap') return '盡快（約 ' + SHOP.prepMinutes + ' 分鐘後）';
       var p = v.split(':');
-      var when = p[0] === 'today' ? '今天' : '隔天';
+      var when = '今天';
+      if (p[0] !== 'today') {
+        var nx = nextOpenDay(d || new Date());
+        when = nx ? nx.label : '下次營業日';
+      }
       return when + ' ' + p.slice(1).join(':');
     },
 

@@ -90,12 +90,17 @@
           '<h3>' + esc(m.name) + '</h3>' +
           '<p class="ds">' + esc(m.desc) + '</p>' +
           m.groups.map(function (g) {
+            // 單選群組用 radiogroup，讀螢幕才聽得出「共 N 項之 M」與所屬群組名
+            var one = g.type === 'one', nm = 'gn_' + g.id, rq = 'gr_' + g.id;
             return '<div class="grp" data-grp="' + g.id + '">' +
-              '<div class="grp-hd"><b>' + esc(g.name) + '</b>' +
-                (g.type === 'one' ? '<span class="req">必選</span>' : '<span class="opt-many">可複選，不加也可以</span>') +
-              '</div><div class="opts">' +
+              '<div class="grp-hd"><b id="' + nm + '">' + esc(g.name) + '</b>' +
+                (one ? '<span class="req" id="' + rq + '">必選</span>'
+                     : '<span class="opt-many" id="' + rq + '">可複選，不加也可以</span>') +
+              '</div><div class="opts" role="' + (one ? 'radiogroup' : 'group') +
+                '" aria-labelledby="' + nm + ' ' + rq + '">' +
               g.options.map(function (o, i) {
-                return '<button class="opt" data-type="' + g.type + '" data-g="' + g.id + '" data-i="' + i + '" aria-pressed="false">' +
+                return '<button class="opt" data-type="' + g.type + '" data-g="' + g.id + '" data-i="' + i + '"' +
+                  (one ? ' role="radio" aria-checked="false"' : ' aria-pressed="false"') + '>' +
                   '<span class="box"></span><span class="lb">' + esc(o.v) + '</span>' +
                   (o.d ? '<span class="dd">' + (o.d > 0 ? '+' : '−') + money(Math.abs(o.d)).replace('NT$', '') + '</span>' : '') +
                 '</button>';
@@ -153,7 +158,7 @@
       if (g.type === 'one') {
         UI._picks[gid] = [v];
         document.querySelectorAll('.opt[data-g="' + gid + '"]').forEach(function (o) {
-          o.setAttribute('aria-pressed', String(+o.dataset.i === i));
+          o.setAttribute('aria-checked', String(+o.dataset.i === i));
         });
       } else {
         var at = cur.indexOf(v);

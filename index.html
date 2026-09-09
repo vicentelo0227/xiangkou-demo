@@ -7,7 +7,7 @@
 <meta name="description" content="示範用的線上點餐系統。選餐點、加料、選取餐時間，整套流程都能實際操作。">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23c3362b%22/%3E%3Cpath d=%22M8 12h16M8 17h16M8 22h10%22 stroke=%22%23fff%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/site.css?v=202609091649">
+<link rel="stylesheet" href="css/site.css?v=202609092200">
 </head>
 <body>
 
@@ -22,10 +22,10 @@
   <div id="menu"></div>
 </main>
 
-<script src="js/data.js?v=202609091649"></script>
-<script src="js/hours.js?v=202609091649"></script>
-<script src="js/store.js?v=202609091649"></script>
-<script src="js/ui.js?v=202609091649"></script>
+<script src="js/data.js?v=202609092200"></script>
+<script src="js/hours.js?v=202609092200"></script>
+<script src="js/store.js?v=202609092200"></script>
+<script src="js/ui.js?v=202609092200"></script>
 <script>
 (function(){
 UI.mount();
@@ -44,7 +44,7 @@ document.getElementById('notice').innerHTML = shut
   : st.open
     ? '<div class="notice">' + esc(st.sub) + '　·　點餐後約 ' + SHOP.prepMinutes + ' 分鐘可取餐</div>'
     : '<div class="notice"><b>' + esc(st.text) + '</b>　' + esc(st.sub) +
-      '<br>現在可以先點，最快的取餐時間是 ' + esc(slots[0].sub) + esc(slots[0].label) + '。</div>';
+      (slots.length ? '<br>現在可以先點，最快的取餐時間是 ' + esc(slots[0].sub) + ' ' + esc(slots[0].label) + '。' : '') + '</div>';
 
 // 分類列
 document.getElementById('catsIn').innerHTML = SHOP.cats.map(function(c,i){

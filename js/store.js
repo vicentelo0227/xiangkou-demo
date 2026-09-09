@@ -31,12 +31,22 @@
     });
   }
 
+  var MODES = ['dinein', 'pickup', 'delivery'];
+
+  // 舊版資料或被手動改過的 localStorage 一樣會走到這，型別不對就當作沒有
+  function cleanOrder(o) {
+    if (!o || typeof o !== 'object') return null;
+    if (!Array.isArray(o.items) || !o.totals || typeof o.totals !== 'object') return null;
+    if (!o.form || typeof o.form !== 'object') return null;
+    return o;
+  }
+
   var loaded = read();
   if (loaded) {
     state.items = clean(loaded.items);
-    state.mode = loaded.mode || 'pickup';
-    state.slot = loaded.slot || null;
-    state.order = loaded.order || null;
+    state.mode = MODES.indexOf(loaded.mode) >= 0 ? loaded.mode : 'pickup';
+    state.slot = typeof loaded.slot === 'string' ? loaded.slot : null;
+    state.order = cleanOrder(loaded.order);
   }
 
   function keyOf(it) { return it.id + '|' + JSON.stringify(it.picks) + '|' + it.note; }
@@ -73,9 +83,9 @@
     if (e.key && e.key !== KEY) return;
     var o = read();
     state.items = clean(o && o.items);
-    state.mode = (o && o.mode) || 'pickup';
-    state.slot = (o && o.slot) || null;
-    state.order = (o && o.order) || null;
+    state.mode = (o && MODES.indexOf(o.mode) >= 0) ? o.mode : 'pickup';
+    state.slot = (o && typeof o.slot === 'string') ? o.slot : null;
+    state.order = cleanOrder(o && o.order);
     notify();
     window.dispatchEvent(new CustomEvent('xk:sync'));
   });
